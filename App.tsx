@@ -39,20 +39,20 @@ const App: React.FC = () => {
       <Sidebar currentView={currentView} onChangeView={setCurrentView} />
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-20 flex flex-col min-w-0 transition-all duration-300">
+      <div className="flex-1 ml-16 sm:ml-20 flex flex-col min-w-0 transition-all duration-300">
         
         {/* Only show top navbar if NOT in Referral Detail (Detail view has its own header structure in screenshot) */}
         {currentView !== ViewState.REFERRAL_DETAIL && (
-            <header className="bg-[#f8f9fc]/90 backdrop-blur-md z-40 px-8 py-6 flex justify-between items-center sticky top-0">
-            <div className="flex items-center gap-3 text-gray-400 text-sm font-medium">
+            <header className="bg-[#f8f9fc]/90 backdrop-blur-md z-40 px-4 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:justify-between sm:items-center sticky top-0 gap-4">
+            <div className="flex items-center gap-3 text-gray-400 text-sm font-medium min-w-0">
                 <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
                     <HomeIcon /> 
                 </div>
                 <span>/</span> 
-                <span className="text-gray-800 capitalize tracking-wide">{currentView.toLowerCase().replace('_', ' ')}</span>
+                <span className="text-gray-800 capitalize tracking-wide truncate">{currentView.toLowerCase().replace('_', ' ')}</span>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6 flex-wrap justify-end">
                 <button 
                   onClick={() => setShowKeywordsModal(true)}
                   className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"

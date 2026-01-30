@@ -17,7 +17,7 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, children, className = "" }) => (
-  <div className={`bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col ${className}`}>
+  <div className={`bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col ${className}`}>
     <h3 className="text-gray-500 font-medium mb-4 text-xs uppercase tracking-wider">{title}</h3>
     <div className="flex-1 flex items-center justify-center w-full min-h-0">
       {children}
@@ -63,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto animate-fade-in">
+    <div className="p-4 sm:p-8 max-w-[1600px] mx-auto animate-fade-in">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl text-[#0f0b29] mb-2 font-serif">Welcome in, Ronald</h1>
@@ -71,12 +71,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       {/* Top Row Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 h-80">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         
         {/* Total Pending Referrals - Donut */}
         <StatCard title="Total Pending Referrals">
           <div className="w-full h-full flex flex-col items-center justify-center">
-            <div className="relative w-44 h-44 sm:w-48 sm:h-48">
+            <div className="relative w-36 h-36 sm:w-48 sm:h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -151,11 +151,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Table Section */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="p-6 border-b border-gray-50 flex justify-between items-center min-w-[800px]">
+        <div className="p-6 border-b border-gray-50 flex justify-between items-center md:min-w-[800px]">
             <h3 className="font-bold text-gray-800">All Referrals</h3>
             <button className="text-sm text-[#4f35f3] font-medium hover:underline">View All</button>
         </div>
-        <table className="w-full text-left text-sm text-gray-600 min-w-[800px]">
+        <table className="w-full text-left text-sm text-gray-600 md:min-w-[800px]">
             <thead className="text-xs text-gray-400 uppercase tracking-wider bg-gray-50/50">
                 <tr>
                     <th className="py-5 pl-8 font-medium">Facility / Patient</th>

@@ -21,7 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
     }`;
 
   return (
-    <aside className="w-20 h-screen bg-[#0f0b29] flex flex-col items-center py-6 fixed left-0 top-0 z-50 rounded-r-2xl shadow-xl">
+    <aside className="w-16 sm:w-20 h-screen bg-[#0f0b29] flex flex-col items-center py-6 fixed left-0 top-0 z-50 rounded-r-2xl shadow-xl">
       {/* Logo */}
       <div className="mb-12 text-white font-bold text-2xl cursor-pointer" onClick={() => onChangeView(ViewState.DASHBOARD)}>
         <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
