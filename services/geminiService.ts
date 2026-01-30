@@ -1,7 +1,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+
+const getAiClient = (): GoogleGenAI => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Gemini API key is not configured for the browser build. GitHub Pages cannot access your local .env; route AI calls through the backend API or configure a build-time key."
+    );
+  }
+
+  if (!ai) {
+    ai = new GoogleGenAI({ apiKey });
+  }
+
+  return ai;
+};
 
 export const analyzePacket = async (
   fileBase64: string,
@@ -10,6 +25,7 @@ export const analyzePacket = async (
   fileName: string
 ): Promise<AnalysisResult> => {
   try {
+    const aiClient = getAiClient();
     const keywordString = keywords.join(", ");
     
     const prompt = `
@@ -29,7 +45,7 @@ export const analyzePacket = async (
       Return the data in valid JSON format.
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await aiClient.models.generateContent({
       model: "gemini-3-flash-preview", // Good for long context documents
       contents: {
         parts: [
