@@ -1,0 +1,41 @@
+{
+  "name": "referralflow-api",
+  "version": "1.0.0",
+  "type": "module",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "workers": "tsx src/workers/index.ts",
+    "workers:dev": "tsx watch src/workers/index.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@aws-sdk/client-s3": "^3.978.0",
+    "@aws-sdk/client-textract": "^3.978.0",
+    "@aws-sdk/lib-storage": "^3.978.0",
+    "@aws-sdk/s3-request-presigner": "^3.978.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/multipart": "^8.1.0",
+    "@prisma/client": "^5.10.0",
+    "bullmq": "^5.4.0",
+    "fastify": "^4.26.0",
+    "ioredis": "^5.3.2",
+    "uuid": "^9.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.0",
+    "prisma": "^5.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,429 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  super_admin
+  org_admin
+  facility_admin
+  admissions_director
+  admissions_coordinator
+  clinical_reviewer
+  viewer
+}
+
+enum ReferralStatus {
+  new
+  processing
+  pending_review
+  under_review
+  pending_info
+  ready_for_decision
+  accepted
+  declined
+  waitlisted
+  withdrawn
+  admitted
+}
+
+enum PayerType {
+  medicare_a
+  medicare_b
+  medicare_advantage
+  medicaid
+  medicaid_pending
+  managed_care
+  commercial
+  private_pay
+  va
+  other
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+  critical
+}
+
+enum AIRecommendationType {
+  strong_accept
+  accept
+  accept_with_conditions
+  review_required
+  decline
+  strong_decline
+}
+
+enum BedStatus {
+  available
+  occupied
+  reserved
+  cleaning
+  maintenance
+  blocked
+}
+
+enum DocumentType {
+  face_sheet
+  h_and_p
+  discharge_summary
+  medication_list
+  labs
+  consult_notes
+  nursing_notes
+  insurance_card
+  other
+}
+
+model Organization {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  settings  Json       @default("{}")
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  facilities Facility[]
+  users      User[]
+}
+
+model Facility {
+  id                String   @id @default(uuid())
+  organizationId    String
+  name              String
+  facilityType      String
+  npi               String?
+  addressLine1      String?
+  city              String?
+  state             String?
+  zipCode           String?
+  phone             String?
+  fax               String?
+  totalBeds         Int?
+  licensedBeds      Int?
+  medicareCertified Boolean  @default(false)
+  medicaidCertified Boolean  @default(false)
+  settings          Json     @default("{}")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  referrals    Referral[]
+  criteria     FacilityCriteria[]
+  beds         Bed[]
+  users        UserFacilityAccess[]
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String?
+  email          String    @unique
+  passwordHash   String
+  firstName      String?
+  lastName       String?
+  phone          String?
+  role           UserRole  @default(viewer)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization       Organization?        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  facilityAccess     UserFacilityAccess[]
+  assignedReferrals  Referral[]           @relation("AssignedTo")
+  decidedReferrals   Referral[]           @relation("DecidedBy")
+  uploadedDocuments  Document[]
+  resolvedFlags      RiskFlag[]
+  activities         Activity[]
+}
+
+model UserFacilityAccess {
+  id          String   @id @default(uuid())
+  userId      String
+  facilityId  String
+  accessLevel String   @default("full")
+  createdAt   DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, facilityId])
+}
+
+model FacilityCriteria {
+  id             String   @id @default(uuid())
+  facilityId     String
+  name           String
+  description    String?
+  category       String
+  ruleType       String
+  ruleDefinition Json
+  priority       Int      @default(100)
+  weight         Int      @default(1)
+  isDealBreaker  Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  facility   Facility   @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  riskFlags  RiskFlag[]
+}
+
+model Referral {
+  id                      String         @id @default(uuid())
+  facilityId              String
+  referralSource          String?
+  externalReferralId      String?
+  referringFacilityName   String?
+  caseManagerName         String?
+  caseManagerPhone        String?
+  caseManagerEmail        String?
+  patientFirstName        String?
+  patientLastName         String?
+  patientDob              DateTime?
+  patientGender           String?
+  status                  ReferralStatus @default(new)
+  substatus               String?
+  aiProcessingStatus      String         @default("pending")
+  aiProcessingStartedAt   DateTime?
+  aiProcessingCompletedAt DateTime?
+  aiProcessingError       String?
+  assignedToId            String?
+  assignedAt              DateTime?
+  receivedAt              DateTime       @default(now())
+  firstResponseAt         DateTime?
+  targetAdmissionDate     DateTime?
+  actualAdmissionDate     DateTime?
+  decisionAt              DateTime?
+  decisionById            String?
+  priority                String         @default("normal")
+  priorityScore           Int?
+  isUrgent                Boolean        @default(false)
+  finalDecision           AIRecommendationType?
+  decisionReason          String?
+  declineReasonCategory   String?
+  aiRecommendation        AIRecommendationType?
+  aiConfidenceScore       Float?
+  followedAiRecommendation Boolean?
+  overrideReason          String?
+  tags                    String[]
+  internalNotes           String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  facility            Facility              @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  assignedTo          User?                 @relation("AssignedTo", fields: [assignedToId], references: [id])
+  decisionBy          User?                 @relation("DecidedBy", fields: [decisionById], references: [id])
+  patient             Patient?
+  extractedData       ExtractedPatientData?
+  aiRecommendationData AIRecommendation?
+  riskFlags           RiskFlag[]
+  documents           Document[]
+  activities          Activity[]
+  aiProcessingLogs    AIProcessingLog[]
+}
+
+model Patient {
+  id                          String   @id @default(uuid())
+  referralId                  String   @unique
+  firstName                   String?
+  lastName                    String?
+  dateOfBirth                 DateTime?
+  age                         Int?
+  gender                      String?
+  ssnLastFour                 String?
+  phone                       String?
+  addressLine1                String?
+  city                        String?
+  state                       String?
+  zipCode                     String?
+  primaryLanguage             String   @default("English")
+  interpreterNeeded           Boolean  @default(false)
+  emergencyContactName        String?
+  emergencyContactPhone       String?
+  emergencyContactRelationship String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+}
+
+model ExtractedPatientData {
+  id                  String   @id @default(uuid())
+  referralId          String   @unique
+  extractionVersion   String?
+  modelUsed           String?
+  extractedAt         DateTime @default(now())
+  overallConfidence   Float?
+  clinicalSummary     Json?
+  diagnoses           Json?
+  medications         Json?
+  functionalStatus    Json?
+  careRequirements    Json?
+  behavioralStatus    Json?
+  labs                Json?
+  vitals              Json?
+  insuranceInfo       Json?
+  dischargeInfo       Json?
+  rawExtractionOutput Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+}
+
+model AIRecommendation {
+  id                   String               @id @default(uuid())
+  referralId           String               @unique
+  recommendation       AIRecommendationType
+  confidenceScore      Float?
+  overallScore         Int?
+  clinicalFitScore     Int?
+  financialFitScore    Int?
+  operationalFitScore  Int?
+  pdpmComponents       Json?
+  estimatedDailyRate   Float?
+  estimatedLosDays     Int?
+  estimatedTotalRevenue Float?
+  positiveFactors      Json?
+  missingInfo          Json?
+  reviewQuestions      String[]
+  summary              String?
+  detailedRationale    String?
+  modelVersion         String?
+  processingTimeMs     Int?
+  tokensUsed           Int?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+}
+
+model RiskFlag {
+  id               String    @id @default(uuid())
+  referralId       String
+  category         String
+  flagType         String
+  severity         RiskLevel
+  isDealBreaker    Boolean   @default(false)
+  title            String
+  description      String?
+  recommendation   String?
+  sourceAgent      String?
+  sourceCriteriaId String?
+  sourceDocumentId String?
+  sourceExcerpt    String?
+  isResolved       Boolean   @default(false)
+  resolvedAt       DateTime?
+  resolvedById     String?
+  resolutionNotes  String?
+  createdAt        DateTime  @default(now())
+
+  referral       Referral          @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  sourceCriteria FacilityCriteria? @relation(fields: [sourceCriteriaId], references: [id])
+  resolvedBy     User?             @relation(fields: [resolvedById], references: [id])
+}
+
+model Document {
+  id                     String       @id @default(uuid())
+  referralId             String
+  originalFilename       String?
+  fileType               String?
+  fileSizeBytes          Int?
+  mimeType               String?
+  storageBucket          String?
+  storagePath            String
+  documentType           DocumentType?
+  documentTypeConfidence Float?
+  ocrStatus              String       @default("pending")
+  ocrCompletedAt         DateTime?
+  ocrText                String?
+  ocrConfidence          Float?
+  pageCount              Int?
+  uploadedById           String?
+  createdAt              DateTime     @default(now())
+
+  referral   Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  uploadedBy User?    @relation(fields: [uploadedById], references: [id])
+}
+
+model Bed {
+  id                   String    @id @default(uuid())
+  facilityId           String
+  unitName             String?
+  roomNumber           String?
+  bedIdentifier        String?
+  bedType              String?
+  capabilities         String[]
+  isPrivateRoom        Boolean   @default(false)
+  status               BedStatus @default(available)
+  currentPatientId     String?
+  reservedForReferralId String?
+  reservedUntil        DateTime?
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id                String   @id @default(uuid())
+  referralId        String
+  userId            String?
+  activityType      String
+  description       String?
+  metadata          Json     @default("{}")
+  isSystemGenerated Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id])
+}
+
+model DailyFacilityMetrics {
+  id                          String   @id @default(uuid())
+  facilityId                  String
+  metricDate                  DateTime
+  referralsReceived           Int      @default(0)
+  referralsAccepted           Int      @default(0)
+  referralsDeclined           Int      @default(0)
+  avgResponseTimeMinutes      Int?
+  currentCensus               Int?
+  availableBeds               Int?
+  estimatedRevenueAccepted    Float?
+  aiRecommendationsFollowed   Int      @default(0)
+  aiRecommendationsOverridden Int      @default(0)
+  createdAt                   DateTime @default(now())
+
+  @@unique([facilityId, metricDate])
+}
+
+model AIProcessingLog {
+  id              String   @id @default(uuid())
+  referralId      String
+  agentName       String
+  action          String
+  inputSummary    String?
+  outputSummary   String?
+  fullInput       Json?
+  fullOutput      Json?
+  modelUsed       String?
+  tokensInput     Int?
+  tokensOutput    Int?
+  processingTimeMs Int?
+  costUsd         Float?
+  success         Boolean  @default(true)
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+}
