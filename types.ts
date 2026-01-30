@@ -56,3 +56,30 @@ export interface ClinicalData {
   medications: string[];
 }
 
+export interface FullAnalysisResult {
+  patientSummary: {
+    primaryDiagnosis: string;
+    age: number;
+    gender: string;
+    payerType: string;
+  };
+  aiRecommendation: AIRecommendation;
+  clinicalData: ClinicalData;
+  riskFactors: Array<{
+    category: 'clinical' | 'financial' | 'operational';
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    description: string;
+    recommendation: string;
+  }>;
+  financialProjection: {
+    estimatedDailyRate: number;
+    estimatedLengthOfStay: number;
+    totalRevenue: number;
+    pdpmScore: number;
+  };
+  operationalRequirements: {
+    nursingHoursPerDay: number;
+    specialCareNeeds: string[];
+    equipmentRequired: string[];
+  };
+}

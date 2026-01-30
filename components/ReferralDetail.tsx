@@ -5,7 +5,7 @@ import {
   Paperclip, Smile, Building2, Brain, Activity, DollarSign, 
   AlertTriangle, CheckCircle2, TrendingUp
 } from 'lucide-react';
-import { ViewState, AIRecommendation, ClinicalData } from '../types';
+import { ViewState, AIRecommendation, ClinicalData, FullAnalysisResult } from '../types';
 import PacketAnalyzer from './PacketAnalyzer';
 
 interface ReferralDetailProps {
@@ -14,37 +14,40 @@ interface ReferralDetailProps {
 }
 
 const ReferralDetail: React.FC<ReferralDetailProps> = ({ onBack, keywords }) => {
-  const [activeTab, setActiveTab] = useState('Overview'); // Default to Overview to show AI insights
+  const [activeTab, setActiveTab] = useState('Overview');
   const [chatMessage, setChatMessage] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState<FullAnalysisResult | null>(null);
   
-  // Mock AI Data based on the architecture prompt
-  const aiRecommendation: AIRecommendation = {
-    recommendation: 'accept',
-    confidence: 0.92,
-    summary: "Patient is a strong clinical match with high revenue potential. Primary diagnosis fits facility capabilities. Insurance verified (Medicare A).",
+  // Default data (shown before AI analysis)
+  const defaultRecommendation: AIRecommendation = {
+    recommendation: 'review',
+    confidence: 0,
+    summary: "Upload a referral packet and run Full Analysis to get AI-powered insights.",
     scores: {
-      clinical: 88,
-      financial: 95,
-      operational: 90
+      clinical: 0,
+      financial: 0,
+      operational: 0
     },
-    estimatedRevenue: 40400, // Monthly uplift mentioned in prompt
-    flags: [
-      { text: "High Fall Risk (BIMS: 11)", severity: 'warning' },
-      { text: "Requires Wound Care (Stage 2)", severity: 'info' }
-    ],
-    positiveFactors: [
-      "High reimbursement rate (PDPM)",
-      "Rehab potential: High",
-      "Family support available"
-    ]
+    estimatedRevenue: 0,
+    flags: [],
+    positiveFactors: []
   };
 
-  const clinicalData: ClinicalData = {
-    primaryDiagnosis: "I50.9 - Heart failure, unspecified",
-    bimsScore: 11,
-    mobilityStatus: "Requires 1-person assist",
-    fallRisk: "High",
-    medications: ["Metoprolol", "Lasix", "Eliquis", "Atorvastatin"]
+  const defaultClinicalData: ClinicalData = {
+    primaryDiagnosis: "Pending analysis...",
+    bimsScore: 0,
+    mobilityStatus: "Pending analysis...",
+    fallRisk: "Medium",
+    medications: []
+  };
+
+  // Use AI analysis data if available, otherwise use defaults
+  const aiRecommendation = aiAnalysis?.aiRecommendation || defaultRecommendation;
+  const clinicalData = aiAnalysis?.clinicalData || defaultClinicalData;
+
+  const handleFullAnalysis = (analysis: FullAnalysisResult) => {
+    setAiAnalysis(analysis);
+    setActiveTab('Overview'); // Switch to overview to show results
   };
 
   const [messages, setMessages] = useState([
@@ -153,25 +156,60 @@ const ReferralDetail: React.FC<ReferralDetailProps> = ({ onBack, keywords }) => 
             {activeTab === 'Overview' && (
                 <div className="space-y-6 animate-fade-in max-w-5xl">
                     {/* Recommendation Banner */}
+                    {!aiAnalysis ? (
+                        <div className="p-6 rounded-3xl border bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-[#4f35f3]/10 flex items-center justify-center">
+                                    <Brain size={24} className="text-[#4f35f3]" />
+                                </div>
+                                <div>
+                                    <h2 className="text-gray-800 font-bold text-lg">AI Analysis Pending</h2>
+                                    <p className="text-gray-500 text-sm">
+                                        Go to the <span className="font-medium text-[#4f35f3]">Docs</span> tab, upload a referral packet, and click <span className="font-medium text-emerald-600">Full Analysis</span> to get AI-powered insights.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
                     <div className={`p-6 rounded-3xl border flex flex-col md:flex-row gap-6 ${
                         aiRecommendation.recommendation === 'accept' 
                         ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100' 
-                        : 'bg-gray-50'
+                        : aiRecommendation.recommendation === 'decline'
+                        ? 'bg-gradient-to-r from-red-50 to-rose-50 border-red-100'
+                        : 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-100'
                     }`}>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-green-800 font-bold text-lg flex items-center gap-2 mb-2">
-                                <CheckCircle2 className="text-green-600 shrink-0" />
-                                AI Recommendation: ACCEPT
+                            <h2 className={`font-bold text-lg flex items-center gap-2 mb-2 ${
+                                aiRecommendation.recommendation === 'accept' ? 'text-green-800' :
+                                aiRecommendation.recommendation === 'decline' ? 'text-red-800' : 'text-amber-800'
+                            }`}>
+                                {aiRecommendation.recommendation === 'accept' && <CheckCircle2 className="text-green-600 shrink-0" />}
+                                {aiRecommendation.recommendation === 'decline' && <AlertTriangle className="text-red-600 shrink-0" />}
+                                {aiRecommendation.recommendation === 'review' && <HelpCircle className="text-amber-600 shrink-0" />}
+                                AI Recommendation: {aiRecommendation.recommendation.toUpperCase()}
                             </h2>
-                            <p className="text-green-900/70 text-sm leading-relaxed">
+                            <p className={`text-sm leading-relaxed ${
+                                aiRecommendation.recommendation === 'accept' ? 'text-green-900/70' :
+                                aiRecommendation.recommendation === 'decline' ? 'text-red-900/70' : 'text-amber-900/70'
+                            }`}>
                                 {aiRecommendation.summary}
                             </p>
                         </div>
-                        <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-2 shrink-0 md:text-right border-t md:border-t-0 md:border-l border-green-200/50 pt-4 md:pt-0 md:pl-6">
-                            <div className="text-3xl font-bold text-green-700">{Math.round(aiRecommendation.confidence * 100)}%</div>
-                            <div className="text-xs text-green-600 font-medium uppercase tracking-wide">Confidence</div>
+                        <div className={`flex md:flex-col items-center md:items-end justify-between md:justify-center gap-2 shrink-0 md:text-right border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-6 ${
+                            aiRecommendation.recommendation === 'accept' ? 'border-green-200/50' :
+                            aiRecommendation.recommendation === 'decline' ? 'border-red-200/50' : 'border-amber-200/50'
+                        }`}>
+                            <div className={`text-3xl font-bold ${
+                                aiRecommendation.recommendation === 'accept' ? 'text-green-700' :
+                                aiRecommendation.recommendation === 'decline' ? 'text-red-700' : 'text-amber-700'
+                            }`}>{Math.round(aiRecommendation.confidence * 100)}%</div>
+                            <div className={`text-xs font-medium uppercase tracking-wide ${
+                                aiRecommendation.recommendation === 'accept' ? 'text-green-600' :
+                                aiRecommendation.recommendation === 'decline' ? 'text-red-600' : 'text-amber-600'
+                            }`}>Confidence</div>
                         </div>
                     </div>
+                    )}
 
                     {/* Scores Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -371,7 +409,7 @@ const ReferralDetail: React.FC<ReferralDetailProps> = ({ onBack, keywords }) => 
 
             {activeTab === 'Docs' && (
                 <div className="h-full">
-                    <PacketAnalyzer keywords={keywords} />
+                    <PacketAnalyzer keywords={keywords} onFullAnalysis={handleFullAnalysis} />
                 </div>
             )}
             
@@ -435,7 +473,7 @@ const ReferralDetail: React.FC<ReferralDetailProps> = ({ onBack, keywords }) => 
                                 <div className="text-xs text-gray-800 bg-gray-50 p-3 rounded-lg rounded-tl-none w-full border border-gray-100">
                                     <p className="font-medium whitespace-pre-line leading-relaxed break-words">
                                         {msg.text.split("Accepted").map((part: string, i: number, arr: any[]) => 
-                                            i < arr.length -1 ? <>{part}<span className="font-bold">Accepted</span></> : part
+                                            i < arr.length -1 ? <span key={i}>{part}<span className="font-bold">Accepted</span></span> : <span key={i}>{part}</span>
                                         )}
                                         {msg.text.includes("Pending Admit") && (
                                             <>Changed referral status to <span className="font-bold">Pending Admit</span></>

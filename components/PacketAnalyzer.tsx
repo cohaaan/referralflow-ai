@@ -1,15 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Search, Loader2, AlertCircle, CheckCircle, Maximize2 } from 'lucide-react';
-import { analyzePacket, fileToBase64 } from '../services/geminiService';
-import { AnalysisResult } from '../types';
+import { Upload, FileText, Search, Loader2, AlertCircle, CheckCircle, Maximize2, Brain } from 'lucide-react';
+import { analyzePacket, analyzeReferralComprehensive, fileToBase64 } from '../services/geminiService';
+import { AnalysisResult, FullAnalysisResult } from '../types';
 
 interface PacketAnalyzerProps {
   keywords: string[];
+  onFullAnalysis?: (analysis: FullAnalysisResult) => void;
 }
 
-const PacketAnalyzer: React.FC<PacketAnalyzerProps> = ({ keywords }) => {
+const PacketAnalyzer: React.FC<PacketAnalyzerProps> = ({ keywords, onFullAnalysis }) => {
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isFullAnalyzing, setIsFullAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +55,25 @@ const PacketAnalyzer: React.FC<PacketAnalyzerProps> = ({ keywords }) => {
       setError(err.message || "Something went wrong during analysis.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const startFullAnalysis = async () => {
+    if (!file) return;
+
+    setIsFullAnalyzing(true);
+    setError(null);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const fullAnalysis = await analyzeReferralComprehensive(base64, file.type, file.name);
+      if (onFullAnalysis) {
+        onFullAnalysis(fullAnalysis);
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong during full analysis.");
+    } finally {
+      setIsFullAnalyzing(false);
     }
   };
 
@@ -131,24 +152,45 @@ const PacketAnalyzer: React.FC<PacketAnalyzerProps> = ({ keywords }) => {
                 )}
             </div>
 
-            <button
-                onClick={startAnalysis}
-                disabled={!file || isAnalyzing || keywords.length === 0}
-                className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 transition-all
-                ${!file || isAnalyzing 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
-                    : 'bg-[#4f35f3] text-white hover:bg-[#3c28c2]'}`}
-            >
-                {isAnalyzing ? (
-                    <>
-                        <Loader2 className="animate-spin" size={16} /> Processing Packet...
-                    </>
-                ) : (
-                    <>
-                        <Search size={16} /> Scan For Keywords
-                    </>
-                )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                  onClick={startAnalysis}
+                  disabled={!file || isAnalyzing || isFullAnalyzing || keywords.length === 0}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 transition-all
+                  ${!file || isAnalyzing || isFullAnalyzing
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
+                      : 'bg-[#4f35f3] text-white hover:bg-[#3c28c2]'}`}
+              >
+                  {isAnalyzing ? (
+                      <>
+                          <Loader2 className="animate-spin" size={16} /> Processing...
+                      </>
+                  ) : (
+                      <>
+                          <Search size={16} /> Scan Keywords
+                      </>
+                  )}
+              </button>
+              
+              <button
+                  onClick={startFullAnalysis}
+                  disabled={!file || isAnalyzing || isFullAnalyzing}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all
+                  ${!file || isAnalyzing || isFullAnalyzing
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+              >
+                  {isFullAnalyzing ? (
+                      <>
+                          <Loader2 className="animate-spin" size={16} /> Analyzing...
+                      </>
+                  ) : (
+                      <>
+                          <Brain size={16} /> Full Analysis
+                      </>
+                  )}
+              </button>
+            </div>
 
             {error && (
                 <div className="bg-red-50 text-red-600 p-3 rounded-xl flex items-center gap-2 text-xs">
