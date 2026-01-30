@@ -4,7 +4,7 @@ import { AnalysisResult } from "../types";
 let ai: GoogleGenAI | null = null;
 
 const getAiClient = (): GoogleGenAI => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
       "Gemini API key is not configured for the browser build. GitHub Pages cannot access your local .env; route AI calls through the backend API or configure a build-time key."
