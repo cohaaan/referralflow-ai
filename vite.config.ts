@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const githubRepo = process.env.GITHUB_REPOSITORY?.split('/')?.[1];
     return {
-      base: mode === 'production' && githubRepo ? `/${githubRepo}/` : '/',
+      base: mode === 'production' ? '/referralflow-ai/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
